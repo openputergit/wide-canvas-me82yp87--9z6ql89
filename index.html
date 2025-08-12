@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motion Sensor Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 glass p-4 hidden md:block">
+            <div class="flex items-center justify-center mb-8">
+                <img src="https://firebasestorage.googleapis.com/v0/b/widecanvas-d0dd4.appspot.com/o/logos%2Fkp-logo-150x150-1.png?alt=media&token=8cc8c041-a9d2-4acc-a3e1-36fef65f46ef" alt="Logo" class="h-12">
+            </div>
+            <nav>
+                <a href="#" class="flex items-center p-3 mb-2 rounded hover:bg-white/20 active-nav" onclick="switchTab('dashboard')">
+                    <i class="bi bi-speedometer2 mr-3"></i> Dashboard
+                </a>
+                <a href="#" class="flex items-center p-3 mb-2 rounded hover:bg-white/20" onclick="switchTab('master-devices')">
+                    <i class="bi bi-hdd-rack mr-3"></i> Master Devices
+                </a>
+                <a href="#" class="flex items-center p-3 mb-2 rounded hover:bg-white/20" onclick="switchTab('sub-devices')">
+                    <i class="bi bi-cpu mr-3"></i> Sub Devices
+                </a>
+                <a href="#" class="flex items-center p-3 mb-2 rounded hover:bg-white/20" onclick="switchTab('alarm-history')">
+                    <i class="bi bi-bell mr-3"></i> Alarm History
+                </a>
+                <a href="#" class="flex items-center p-3 mb-2 rounded hover:bg-white/20" onclick="switchTab('users')">
+                    <i class="bi bi-people mr-3"></i> User List
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8 overflow-auto">
+            <div id="dashboard" class="space-y-6">
+                <h2 class="text-2xl font-bold mb-6">Dashboard Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass p-6 rounded-lg">
+                        <h3 class="text-xl mb-2">Active Devices</h3>
+                        <p class="text-4xl font-bold">24</p>
+                    </div>
+                    <div class="glass p-6 rounded-lg">
+                        <h3 class="text-xl mb-2">Recent Alarms</h3>
+                        <p class="text-4xl font-bold">7</p>
+                    </div>
+                    <div class="glass p-6 rounded-lg">
+                        <h3 class="text-xl mb-2">Total Users</h3>
+                        <p class="text-4xl font-bold">12</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="master-devices" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Master Devices</h2>
+                    <button onclick="showAddMasterDevice()" class="glass px-4 py-2 rounded-lg hover:bg-white/30">
+                        <i class="bi bi-plus-lg mr-2"></i>Add Device
+                    </button>
+                </div>
+                <div class="glass rounded-lg overflow-hidden">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-white/20">
+                                <th class="p-4 text-left">Device ID</th>
+                                <th class="p-4 text-left">Name</th>
+                                <th class="p-4 text-left">Status</th>
+                                <th class="p-4 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="masterDevicesList">
+                            <!-- Devices will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Similar sections for sub-devices, alarm-history, and users -->
+        </div>
+    </div>
+
+    <!-- Modal for adding/editing devices -->
+    <div id="deviceModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+        <div class="glass p-6 rounded-lg w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Add Master Device</h3>
+            <form id="deviceForm" class="space-y-4">
+                <div>
+                    <label class="block mb-2">Device Name</label>
+                    <input type="text" class="w-full p-2 rounded bg-white/10 glass" required>
+                </div>
+                <div>
+                    <label class="block mb-2">Location</label>
+                    <input type="text" class="w-full p-2 rounded bg-white/10 glass" required>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded glass hover:bg-white/30">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded glass hover:bg-white/30">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(tabId) {
+            document.querySelectorAll('div[id]').forEach(div => {
+                div.classList.add('hidden');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Update active nav
+            document.querySelectorAll('nav a').forEach(a => {
+                a.classList.remove('bg-white/20');
+            });
+            event.currentTarget.classList.add('bg-white/20');
+        }
+
+        // Modal functions
+        function showAddMasterDevice() {
+            document.getElementById('deviceModal').classList.remove('hidden');
+            document.getElementById('deviceModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('deviceModal').classList.add('hidden');
+            document.getElementById('deviceModal').classList.remove('flex');
+        }
+
+        // Initialize the application
+        async function initApp() {
+            // Fetch initial data
+            try {
+                const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer GDb41xDUhRfFfLykTITf5MFtRE13',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appSlug: 'motion-sensor-123456',
+                        action: 'read',
+                        collection: 'master_devices'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    updateDevicesList(data.result);
+                }
+            } catch (error) {
+                console.error('Failed to fetch devices:', error);
+            }
+        }
+
+        function updateDevicesList(devices) {
+            const tbody = document.getElementById('masterDevicesList');
+            tbody.innerHTML = devices.map(device => `
+                <tr class="border-b border-white/20">
+                    <td class="p-4">${device._id}</td>
+                    <td class="p-4">${device.name}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-full ${device.status === 'active' ? 'bg-green-500' : 'bg-red-500'}">
+                            ${device.status}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        <button onclick="editDevice('${device._id}')" class="mr-2 hover:text-blue-300">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button onclick="deleteDevice('${device._id}')" class="hover:text-red-300">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
